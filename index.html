@@ -257,6 +257,10 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
     <!-- SETTINGS -->
     <div id="panel-s">
       <div class="fg"><label>Your Name (Invoice Header)</label><input type="text" id="invOwnerName" placeholder="e.g. Jane D. Smith"></div>
+      <div class="r2">
+        <div class="fg"><label>Bank Name</label><input type="text" id="settBankName" placeholder="e.g. BDO" oninput="document.getElementById('invBankName').textContent=this.value||'—';save()"></div>
+        <div class="fg"><label>Account Number</label><input type="text" id="settBankAcct" placeholder="e.g. 001530120479" oninput="document.getElementById('invBankAcct').textContent=this.value||'—';save()"></div>
+      </div>
       <div class="fg"><label>Invoice Month</label><input type="month" id="invMonth"></div>
       <div class="r2">
         <div class="fg"><label>Invoice #</label><input type="text" id="invNum" value="001"></div>
@@ -343,7 +347,16 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
       </div>
       <hr class="inv-div">
       <div id="invBody"></div>
-      <div class="inv-sum-wrap">
+      <div style="margin-top:26px;display:flex;align-items:flex-start;gap:20px;justify-content:space-between">
+        <!-- Bank Details -->
+        <div style="min-width:200px">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:10px">Payment Details</div>
+          <div id="bankDetailsBlock">
+            <div style="font-size:12px;color:#222;margin-bottom:4px"><span style="color:#555;font-weight:600">Bank:</span> <span id="invBankName">BDO</span></div>
+            <div style="font-size:12px;color:#222"><span style="color:#555;font-weight:600">Account #:</span> <span id="invBankAcct">001530120479</span></div>
+          </div>
+        </div>
+        <!-- Compensation Summary -->
         <div class="inv-sum">
           <div class="inv-sum-h">Compensation Summary</div>
           <table id="sumTable"></table>
@@ -376,7 +389,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
       </div>
     </div>
     <div class="r2">
-      <div class="fg"><label>MRR (AUD)</label><input type="number" id="mCmrr" value="0" min="0" step="50"></div>
+      <div class="fg"><label>MRR (AUD)</label><input type="number" id="mCmrr" value="0" min="0" step="50" onfocus="this.select()"></div>
       <div class="fg"><label>Half Month?</label>
         <select id="mChalf"><option value="false">No – full</option><option value="true">Yes – half</option></select>
       </div>
@@ -503,6 +516,8 @@ function save(){
     num:   document.getElementById('invNum')?.value||'001',
     fx:    document.getElementById('fxRate')?.value||'0.65',
     name:  document.getElementById('invOwnerName')?.value||'',
+    bankName: document.getElementById('settBankName')?.value||'',
+    bankAcct: document.getElementById('settBankAcct')?.value||'',
     secLabels: SECS.map(s=>s.lbl),
   }));
 }
@@ -519,6 +534,8 @@ function load(){
       if(set.num)   document.getElementById('invNum').value=set.num;
       if(set.fx)    document.getElementById('fxRate').value=set.fx;
       if(set.name)  document.getElementById('invOwnerName').value=set.name;
+      if(set.bankName){ document.getElementById('settBankName').value=set.bankName; document.getElementById('invBankName').textContent=set.bankName; }
+      if(set.bankAcct){ document.getElementById('settBankAcct').value=set.bankAcct; document.getElementById('invBankAcct').textContent=set.bankAcct; }
       if(set.secLabels) set.secLabels.forEach((lbl,i)=>{ if(SECS[i]) SECS[i].lbl=lbl; });
     }
   } catch(e){ console.warn('localStorage load error',e); }
@@ -583,7 +600,7 @@ function renderClients(){
             </select></div>
           </div>
           <div class="r2">
-            <div class="fg"><label>MRR (AUD)</label><input type="number" value="${c.mrr}" min="0" step="50" onchange="upC(${c.id},'mrr',+this.value)"></div>
+            <div class="fg"><label>MRR (AUD)</label><input type="number" value="${c.mrr}" min="0" step="50" onfocus="this.select()" onchange="upC(${c.id},'mrr',+this.value)"></div>
             <div class="fg"><label>Half Month?</label><select onchange="upC(${c.id},'half',this.value==='true')">
               <option value="false"${!c.half?' selected':''}>No – full</option>
               <option value="true"${c.half?' selected':''}>Yes – half</option>
@@ -751,7 +768,7 @@ function regenerate(){
     const col=sec.col;
     let sMRR=0;sc.forEach(c=>sMRR+=eff(c));
     html+=`<div class="inv-sec">
-      <div class="inv-sh sh-${col}">${sec.lbl}${isPod?' <span class="itag t-pod" style="margin-left:6px;vertical-align:middle">Pod</span>':''}</div>
+      <div class="inv-sh sh-${col}">${sec.lbl}</div>
       <table class="itbl th-${col}"><thead><tr>
         <th style="width:30%">Client</th><th>Services</th><th style="width:90px">MRR</th><th style="width:110px">Billed (AUD)</th>
       </tr></thead><tbody>`;
