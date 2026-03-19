@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Michael Fernandez – Invoice Generator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --rz-green: #44D62C;
+  --rz-green-dim: #2ea81f;
+  --rz-green-glow: rgba(68,214,44,0.15);
+  --rz-green-faint: rgba(68,214,44,0.07);
+  --rz-black: #0d0d0d;
+  --rz-dark: #111111;
+  --rz-panel: #161616;
+  --rz-card: #1a1a1a;
+  --rz-border: #2a2a2a;
+  --rz-border-green: rgba(68,214,44,0.3);
+  --rz-text: #e8e8e8;
+  --rz-text-muted: #888;
+  --rz-text-faint: #555;
+  --success-bg: rgba(68,214,44,0.1);
+  --warn-bg: rgba(240,180,41,0.12);
+  --warn-text: #f0b429;
+  --danger: #ff4d4d;
+  --danger-bg: rgba(255,77,77,0.1);
+  --upcoming-bg: rgba(100,120,255,0.1);
+  --upcoming-text: #8899ff;
+}
+body { font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; background:var(--rz-black); color:var(--rz-text); min-height:100vh; }
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:var(--rz-dark); }
+::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--rz-green-dim); }
+
+.app { display:flex; min-height:100vh; }
+.sidebar { width:360px; min-width:320px; background:var(--rz-panel); border-right:1px solid var(--rz-border); position:sticky; top:0; height:100vh; overflow-y:auto; flex-shrink:0; display:flex; flex-direction:column; }
+.sb-head { padding:16px 18px 12px; border-bottom:1px solid var(--rz-border); background:var(--rz-dark); }
+.sb-head h2 { font-size:12px; font-weight:700; color:var(--rz-green); text-transform:uppercase; letter-spacing:.14em; }
+.sb-head p  { font-size:11px; color:var(--rz-text-faint); margin-top:2px; }
+.sb-scroll  { flex:1; overflow-y:auto; padding:12px 14px; }
+.sb-foot    { padding:10px 14px; border-top:1px solid var(--rz-border); background:var(--rz-dark); }
+
+.main { flex:1; overflow-x:auto; background:var(--rz-black); }
+.inv-wrap { padding:22px 28px; max-width:920px; margin:0 auto; }
+
+/* form */
+.fg { margin-bottom:12px; }
+.fg label, .fl { display:block; font-size:10px; font-weight:700; color:var(--rz-text-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+input[type=text],input[type=number],input[type=month],select {
+  width:100%; padding:7px 10px; background:var(--rz-card); border:1px solid var(--rz-border);
+  border-radius:4px; font-size:12px; color:var(--rz-text); outline:none; transition:border-color .15s;
+}
+input:focus,select:focus { border-color:var(--rz-green); box-shadow:0 0 0 2px var(--rz-green-glow); }
+select { cursor:pointer; }
+.r2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.r3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+
+/* buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:7px 14px; border-radius:4px; font-size:12px; font-weight:700; cursor:pointer; border:none; transition:all .15s; text-transform:uppercase; letter-spacing:.05em; }
+.btn-g  { background:var(--rz-green); color:#000; }
+.btn-g:hover { background:#5bea41; }
+.btn-ol { background:transparent; color:var(--rz-green); border:1px solid var(--rz-border-green); }
+.btn-ol:hover { background:var(--rz-green-faint); }
+.btn-gh { background:transparent; color:var(--rz-text-muted); border:1px solid var(--rz-border); }
+.btn-gh:hover { background:var(--rz-card); color:var(--rz-text); }
+.btn-ds { background:var(--danger-bg); color:var(--danger); border:1px solid rgba(255,77,77,0.2); }
+.btn-ds:hover { background:rgba(255,77,77,0.2); }
+.btn-sm { padding:5px 10px; font-size:11px; }
+.btn-xs { padding:3px 8px; font-size:10px; }
+.btn-fw { width:100%; margin-bottom:6px; }
+
+/* tabs */
+.tabs { display:flex; border-bottom:1px solid var(--rz-border); margin-bottom:12px; }
+.tab { padding:8px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; cursor:pointer; color:var(--rz-text-faint); border-bottom:2px solid transparent; transition:all .15s; margin-bottom:-1px; }
+.tab:hover { color:var(--rz-text); }
+.tab.active { color:var(--rz-green); border-bottom-color:var(--rz-green); }
+
+/* section accordion */
+.sacc { background:var(--rz-card); border:1px solid var(--rz-border); border-radius:4px; margin-bottom:7px; overflow:hidden; }
+.sacc-hd { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; cursor:pointer; }
+.sacc-hd:hover { background:rgba(255,255,255,.02); }
+.sacc-label { font-size:11px; font-weight:700; color:var(--rz-green); text-transform:uppercase; letter-spacing:.07em; }
+.sacc-meta  { font-size:10px; color:var(--rz-text-faint); }
+.sacc-body  { border-top:1px solid var(--rz-border); padding:10px; }
+
+/* client card */
+.cc { background:var(--rz-black); border:1px solid var(--rz-border); border-radius:4px; margin-bottom:7px; overflow:hidden; }
+.cc.s-active   { border-left:3px solid var(--rz-green); }
+.cc.s-paused   { border-left:3px solid var(--warn-text); }
+.cc.s-churned  { border-left:3px solid var(--danger); opacity:.75; }
+.cc.s-upcoming { border-left:3px solid var(--upcoming-text); }
+.cc-hd { display:flex; align-items:center; gap:7px; padding:8px 10px; cursor:pointer; user-select:none; }
+.cc-hd:hover { background:rgba(255,255,255,.02); }
+.cc-name { font-size:12px; font-weight:700; flex:1; }
+.cc-mrr  { font-size:11px; color:var(--rz-green); font-weight:700; }
+.cc-body { border-top:1px solid var(--rz-border); padding:10px; display:none; }
+.cc-body.open { display:block; }
+
+/* status badge */
+.sb { display:inline-block; padding:2px 6px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.sb-active   { background:var(--success-bg); color:var(--rz-green); }
+.sb-paused   { background:var(--warn-bg);    color:var(--warn-text); }
+.sb-churned  { background:var(--danger-bg);  color:var(--danger); }
+.sb-upcoming { background:var(--upcoming-bg);color:var(--upcoming-text); }
+
+/* comp bar */
+.cbar { background:var(--rz-panel); border:1px solid var(--rz-border); border-radius:5px; padding:11px 16px; margin-bottom:18px; display:flex; gap:20px; flex-wrap:wrap; align-items:center; }
+.cbi  { }
+.cbi-l { font-size:9px; color:var(--rz-text-faint); text-transform:uppercase; letter-spacing:.08em; }
+.cbi-v { font-size:15px; font-weight:700; color:var(--rz-green); margin-top:2px; }
+.cbi-v.warn { color:var(--danger); }
+.cdiv { width:1px; height:30px; background:var(--rz-border); }
+.tier-b { display:inline-block; padding:3px 8px; border-radius:3px; font-size:10px; font-weight:700; text-transform:uppercase; background:var(--rz-green-faint); color:var(--rz-green); border:1px solid var(--rz-border-green); }
+
+/* invoice page (white) */
+.inv-page { background:#fff; border-radius:4px; padding:42px 50px; font-size:12px; color:#1a1a1a; box-shadow:0 4px 32px rgba(0,0,0,.6); }
+.inv-name { font-size:23px; font-weight:800; color:#000; letter-spacing:-.01em; }
+.inv-mg   { margin-top:9px; display:grid; grid-template-columns:auto 1fr; gap:3px 14px; font-size:12px; }
+.inv-mg .ml { color:#555; font-weight:600; }
+.inv-mg .mv { color:#111; }
+.inv-sec  { margin-bottom:18px; }
+
+/* ── Per-AM pastel palette ──
+   michael  → pastel green   #b7e8b0 / text #2d6a27
+   dessa    → pastel pink    #f7c5d8 / text #8b2252
+   christine→ pastel lavender#d4c5f7 / text #4a2d8b
+   carlos   → pastel sky     #b8dcf7 / text #1a4f7a
+   gilbert  → pastel peach   #fcd9b0 / text #7a3e10
+   cro/ga   → pastel gold    #f7e6b0 / text #6b4e00
+*/
+:root {
+  --pm-hdr:#b7e8b0; --pm-txt:#2d6a27; --pm-th:#dff5db; --pm-tb:#2d6a27; --pm-tot:#c8eebc; --pm-bdr:#9fd898;
+  --pd-hdr:#f7c5d8; --pd-txt:#8b2252; --pd-th:#fde8f1; --pd-tb:#8b2252; --pd-tot:#fbd1e6; --pd-bdr:#f0a0c4;
+  --pc-hdr:#d4c5f7; --pc-txt:#4a2d8b; --pc-th:#ede7ff; --pc-tb:#4a2d8b; --pc-tot:#ddd0fb; --pc-bdr:#b8a8f0;
+  --pk-hdr:#b8dcf7; --pk-txt:#1a4f7a; --pk-th:#dceeff; --pk-tb:#1a4f7a; --pk-tot:#c8e6fb; --pk-bdr:#8cc8f0;
+  --pg-hdr:#fcd9b0; --pg-txt:#7a3e10; --pg-th:#fef0d8; --pg-tb:#7a3e10; --pg-tot:#fce4c0; --pg-bdr:#f5c080;
+  --px-hdr:#f7e6b0; --px-txt:#6b4e00; --px-th:#fef6d8; --px-tb:#6b4e00; --px-tot:#faedc0; --px-bdr:#f0d478;
+}
+
+.inv-sh { padding:7px 13px; font-size:11px; font-weight:800; border-radius:3px 3px 0 0; letter-spacing:.06em; text-transform:uppercase; }
+.sh-michael   { background:var(--pm-hdr); color:var(--pm-txt); }
+.sh-dessa     { background:var(--pd-hdr); color:var(--pd-txt); }
+.sh-christine { background:var(--pc-hdr); color:var(--pc-txt); }
+.sh-carlos    { background:var(--pk-hdr); color:var(--pk-txt); }
+.sh-gilbert   { background:var(--pg-hdr); color:var(--pg-txt); }
+.sh-service   { background:var(--px-hdr); color:var(--px-txt); }
+
+table.itbl { width:100%; border-collapse:collapse; border:1px solid #ddd; border-top:none; }
+table.itbl th { font-size:10px; font-weight:700; padding:6px 11px; text-align:left; text-transform:uppercase; letter-spacing:.06em; }
+table.itbl th:last-child, table.itbl td:last-child { text-align:right; }
+table.itbl td { padding:7px 11px; border-bottom:1px solid #f0f0f0; vertical-align:top; color:#222; }
+table.itbl tr:last-child td { border-bottom:none; }
+table.itbl tr:nth-child(even) td { background:#fafafa; }
+
+/* per-AM th tinting */
+.th-michael th { background:var(--pm-th); color:var(--pm-tb); border-bottom:1px solid var(--pm-bdr); }
+.th-dessa   th { background:var(--pd-th); color:var(--pd-tb); border-bottom:1px solid var(--pd-bdr); }
+.th-christine th{ background:var(--pc-th); color:var(--pc-tb); border-bottom:1px solid var(--pc-bdr); }
+.th-carlos  th { background:var(--pk-th); color:var(--pk-tb); border-bottom:1px solid var(--pk-bdr); }
+.th-gilbert th { background:var(--pg-th); color:var(--pg-tb); border-bottom:1px solid var(--pg-bdr); }
+.th-service th { background:var(--px-th); color:var(--px-tb); border-bottom:1px solid var(--px-bdr); }
+
+/* per-AM section total row */
+.rt-michael td { font-weight:700; background:var(--pm-tot) !important; color:var(--pm-txt); font-size:12px; }
+.rt-dessa   td { font-weight:700; background:var(--pd-tot) !important; color:var(--pd-txt); font-size:12px; }
+.rt-christine td{ font-weight:700; background:var(--pc-tot) !important; color:var(--pc-txt); font-size:12px; }
+.rt-carlos  td { font-weight:700; background:var(--pk-tot) !important; color:var(--pk-txt); font-size:12px; }
+.rt-gilbert td { font-weight:700; background:var(--pg-tot) !important; color:var(--pg-txt); font-size:12px; }
+.rt-service td { font-weight:700; background:var(--px-tot) !important; color:var(--px-txt); font-size:12px; }
+
+/* status rows (shared across all sections) */
+.rp td { background:#fffbe6 !important; color:#856404 !important; }
+.rc td { background:#fff5f5 !important; color:#c0392b !important; text-decoration:line-through; opacity:.7; }
+.rh td { background:#fffde7 !important; }
+.ru td { background:#f5f6ff !important; color:#3949ab !important; opacity:.75; font-style:italic; }
+
+.itag { display:inline-block; padding:1px 5px; border-radius:2px; font-size:9px; font-weight:700; margin-left:4px; text-transform:uppercase; vertical-align:middle; }
+.t-half    { background:#fff3e0; color:#a05a00; border:1px solid #f0c36d; }
+.t-paused  { background:#fff8e1; color:#856404; border:1px solid #f0d080; }
+.t-churned { background:#fff0ef; color:#c0392b; border:1px solid #f5b3ae; }
+.t-upcome  { background:#ede7f6; color:#4527a0; border:1px solid #b39ddb; }
+.t-pod     { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; font-size:8px; }
+.stxt  { color:#777; font-size:11px; margin-top:2px; }
+.ntxt  { color:#aaa; font-size:10.5px; font-style:italic; margin-top:1px; }
+
+.inv-sum-wrap { margin-top:26px; display:flex; justify-content:flex-end; }
+.inv-sum  { min-width:360px; border:1px solid #ddd; border-radius:4px; overflow:hidden; }
+.inv-sum-h { background:#b7e8b0; color:#2d6a27; padding:8px 18px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+.inv-sum table { width:100%; border-collapse:collapse; }
+.inv-sum td { padding:7px 18px; border-bottom:1px solid #f0f0f0; font-size:12px; color:#222; }
+.inv-sum tr:last-child td { border-bottom:none; }
+.inv-sum td:last-child { text-align:right; font-weight:600; }
+.ss td  { background:#dff5db !important; font-weight:700; font-size:10px; color:#2d6a27; text-transform:uppercase; letter-spacing:.06em; }
+.sg td  { background:#b7e8b0 !important; color:#1a3d16 !important; font-size:14px; font-weight:800; }
+.sg td:last-child { font-size:16px; }
+.sb2 td { font-weight:700; background:#f0fced !important; }
+.inv-div { border:none; border-top:1px solid #eee; margin:16px 0; }
+
+/* modal */
+.mbg { position:fixed; inset:0; background:rgba(0,0,0,.82); display:none; z-index:100; align-items:center; justify-content:center; }
+.mbg.open { display:flex; }
+.modal { background:var(--rz-panel); border:1px solid var(--rz-border-green); border-radius:6px; padding:22px; width:460px; max-width:95vw; box-shadow:0 8px 40px rgba(68,214,44,.1); }
+.modal h3 { font-size:13px; font-weight:700; color:var(--rz-green); margin-bottom:14px; text-transform:uppercase; letter-spacing:.08em; }
+.modal-act { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+/* service checkboxes */
+.svc-check { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:4px; border:1px solid var(--rz-border); background:var(--rz-black); cursor:pointer; transition:border-color .15s,background .15s; user-select:none; }
+.svc-check:hover { border-color:var(--rz-border-green); background:var(--rz-green-faint); }
+.svc-check.checked { border-color:var(--rz-green); background:var(--rz-green-faint); }
+.svc-check input[type=checkbox] { width:13px; height:13px; accent-color:var(--rz-green); cursor:pointer; flex-shrink:0; }
+.svc-check span { font-size:11px; color:var(--rz-text-muted); }
+.svc-check.checked span { color:var(--rz-green); font-weight:600; }
+.fx-loading { color:var(--rz-text-faint); font-style:italic; }
+
+/* utils */
+.mt8 { margin-top:8px; }
+.mt12 { margin-top:12px; }
+.flex { display:flex; }
+.ic { align-items:center; }
+.jb { justify-content:space-between; }
+.gap6 { gap:6px; }
+.gap8 { gap:8px; }
+.tr { text-align:right; }
+.bold { font-weight:700; }
+.green { color:var(--rz-green); }
+.muted { color:var(--rz-text-muted); }
+.faint { color:var(--rz-text-faint); }
+.div { border:none; border-top:1px solid var(--rz-border); margin:10px 0; }
+
+@media print {
+  body { background:#fff; }
+  .sidebar,.cbar,.print-hide { display:none !important; }
+  .main { overflow:visible; }
+  .inv-wrap { padding:0; max-width:100%; }
+  .inv-page { box-shadow:none; padding:16px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar print-hide">
+  <div class="sb-head">
+    <h2>⚡ Invoice Control</h2>
+    <p>CBCG · Account Management</p>
+  </div>
+  <div class="sb-scroll">
+    <div class="tabs mt8">
+      <div class="tab active" id="tab-s" onclick="switchTab('s')">Settings</div>
+      <div class="tab" id="tab-c" onclick="switchTab('c')">Clients</div>
+      <div class="tab" id="tab-x" onclick="switchTab('x')">CRO / GA</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="panel-s">
+      <div class="fg"><label>Your Name (Invoice Header)</label><input type="text" id="invOwnerName" placeholder="e.g. Jane D. Smith"></div>
+      <div class="fg"><label>Invoice Month</label><input type="month" id="invMonth"></div>
+      <div class="r2">
+        <div class="fg"><label>Invoice #</label><input type="text" id="invNum" value="001"></div>
+        <div class="fg">
+          <label>FX Rate AUD→USD</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="number" id="fxRate" value="0.65" step="0.0001" min="0.4" max="1" style="flex:1">
+            <button class="btn btn-ol btn-xs" onclick="fetchFX()" title="Fetch live rate" style="padding:7px 9px;white-space:nowrap">⟳ Live</button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--rz-text-faint);margin-top:-6px;margin-bottom:4px">
+        1 AUD = <span id="fxDisp" class="green bold">0.650</span> USD &nbsp;·&nbsp; Bonus: <span class="green bold">3%</span>
+      </div>
+      <div id="fxMeta" style="font-size:10px;color:var(--rz-text-faint);margin-bottom:14px"></div>
+      <div class="div"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--rz-text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Section Labels</div>
+      <div style="font-size:11px;color:var(--rz-text-faint);margin-bottom:8px">Rename each AM section (saved locally)</div>
+      <div id="secLabelFields"></div>
+      <div class="div"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--rz-text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tier Reference</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <tr style="color:var(--rz-text-faint)"><th style="text-align:left;padding:3px 0;font-weight:600">AUD Range</th><th style="text-align:right;font-weight:600">Base USD</th></tr>
+        <tr><td style="padding:3px 0;color:var(--rz-text-muted)">8K – 20K</td><td style="text-align:right;color:var(--rz-green);font-weight:700">$700</td></tr>
+        <tr><td style="padding:3px 0;color:var(--rz-text-muted)">20K – 50K</td><td style="text-align:right;color:var(--rz-green);font-weight:700">$1,200</td></tr>
+        <tr><td style="padding:3px 0;color:var(--rz-text-muted)">50K – 70K</td><td style="text-align:right;color:var(--rz-green);font-weight:700">$1,800</td></tr>
+        <tr><td style="padding:3px 0;color:var(--rz-text-muted)">70K+</td><td style="text-align:right;color:var(--rz-green);font-weight:700">$2,400</td></tr>
+      </table>
+      <div class="div"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--rz-text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Legend</div>
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--rz-text-muted)">
+        <div><span class="sb sb-active">Active</span> &nbsp;Counted in MRR</div>
+        <div><span class="sb sb-paused">Paused</span> &nbsp;Excluded, shown</div>
+        <div><span class="sb sb-churned">Churned</span> &nbsp;Struck out</div>
+        <div><span class="sb sb-upcoming">Upcoming</span> &nbsp;Not billed yet</div>
+        <div><span class="itag t-half" style="margin-left:0">½</span> &nbsp;Half-month rate</div>
+      </div>
+      <div class="div"></div>
+      <button class="btn btn-ds btn-fw" style="margin-bottom:0;font-size:11px" onclick="clearAllData()">⚠ Clear All Saved Data</button>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="panel-c" style="display:none">
+      <div class="flex ic jb mt8" style="margin-bottom:10px">
+        <span style="font-size:11px;color:var(--rz-text-faint)">Click a client to expand & edit</span>
+        <button class="btn btn-g btn-sm" onclick="openClientModal()">+ Add</button>
+      </div>
+      <div id="clientSections"></div>
+    </div>
+
+    <!-- CRO / GA -->
+    <div id="panel-x" style="display:none">
+      <div class="flex ic jb mt8" style="margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--rz-green);text-transform:uppercase;letter-spacing:.07em">CRO</span>
+        <button class="btn btn-ol btn-xs" onclick="openSvcModal('cro')">+ Add</button>
+      </div>
+      <div id="croList"></div>
+      <div class="div"></div>
+      <div class="flex ic jb" style="margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--rz-green);text-transform:uppercase;letter-spacing:.07em">Google Ads</span>
+        <button class="btn btn-ol btn-xs" onclick="openSvcModal('ga')">+ Add</button>
+      </div>
+      <div id="gaList"></div>
+    </div>
+  </div>
+  <div class="sb-foot">
+    <button class="btn btn-g btn-fw" onclick="window.print()">🖨 Print / Export PDF</button>
+    <button class="btn btn-gh btn-fw" style="margin-bottom:0" onclick="regenerate()">↺ Recalculate</button>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+  <div class="inv-wrap">
+    <div class="cbar print-hide" id="cbar"></div>
+    <div class="inv-page">
+      <div style="margin-bottom:24px">
+        <div class="inv-name" id="hOwnerName">Your Name</div>
+        <div class="inv-mg">
+          <span class="ml">Invoice #</span><span class="mv" id="hNum">001</span>
+          <span class="ml">Date:</span><span class="mv" id="hDate"></span>
+          <span class="ml">Due Date:</span><span class="mv" id="hDue"></span>
+        </div>
+      </div>
+      <hr class="inv-div">
+      <div id="invBody"></div>
+      <div class="inv-sum-wrap">
+        <div class="inv-sum">
+          <div class="inv-sum-h">Compensation Summary</div>
+          <table id="sumTable"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ══ CLIENT MODAL ══ -->
+<div class="mbg" id="mClient">
+  <div class="modal">
+    <h3 id="mClientTitle">Add Client</h3>
+    <input type="hidden" id="mCid">
+    <div class="fg"><label>Client Name</label><input type="text" id="mCname" placeholder="e.g. Trigger Towing"></div>
+    <div class="r2">
+      <div class="fg"><label>AM Section</label>
+        <select id="mCam">
+          <option value="am1">AM 1</option><option value="am2">AM 2</option>
+          <option value="am3">AM 3</option><option value="am4">AM 4</option>
+          <option value="am5">AM 5</option>
+        </select>
+      </div>
+      <div class="fg"><label>Status</label>
+        <select id="mCstatus">
+          <option value="active">Active</option><option value="paused">Paused</option>
+          <option value="churned">Churned</option><option value="upcoming">Upcoming</option>
+        </select>
+      </div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>MRR (AUD)</label><input type="number" id="mCmrr" value="0" min="0" step="50"></div>
+      <div class="fg"><label>Half Month?</label>
+        <select id="mChalf"><option value="false">No – full</option><option value="true">Yes – half</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Services</label>
+      <div id="mCsvcBoxes" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:2px"></div>
+      <input type="hidden" id="mCsvc">
+    </div>
+    <div class="fg"><label>Note</label><input type="text" id="mCnote" placeholder="e.g. Starts Jan 15"></div>
+    <div class="modal-act">
+      <button class="btn btn-gh" onclick="closeM('mClient')">Cancel</button>
+      <button class="btn btn-g" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SERVICE MODAL ══ -->
+<div class="mbg" id="mSvc">
+  <div class="modal">
+    <h3 id="mSvcTitle">Add Client</h3>
+    <input type="hidden" id="mStype"><input type="hidden" id="mSid">
+    <div class="fg"><label>Client Name</label><input type="text" id="mSname" placeholder="e.g. Trigger Towing"></div>
+    <div class="r2">
+      <div class="fg"><label>Amount USD/mo</label><input type="number" id="mSusd" value="50" min="0" step="10"></div>
+      <div class="fg"><label>Active?</label>
+        <select id="mSactive"><option value="true">Active</option><option value="false">Upcoming</option></select>
+      </div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Half Month?</label>
+        <select id="mShalf"><option value="false">No – full</option><option value="true">Yes – half</option></select>
+      </div>
+      <div class="fg"><label>Note</label><input type="text" id="mSnote" placeholder="e.g. Starts March"></div>
+    </div>
+    <div class="modal-act">
+      <button class="btn btn-gh" onclick="closeM('mSvc')">Cancel</button>
+      <button class="btn btn-g" onclick="saveSvc()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TIERS=[
+  {min:0,     max:8000,     base:0,    label:'Below Tier 1'},
+  {min:8000,  max:20000,    base:700,  label:'Tier 1 – Account Manager'},
+  {min:20000, max:50000,    base:1200, label:'Tier 2 – Experienced AM'},
+  {min:50000, max:70000,    base:1800, label:'Tier 3 – Senior AM'},
+  {min:70000, max:Infinity, base:2400, label:'Tier 4 – Division Lead'},
+];
+const POD=['am1','am2','am3','am4'];
+const SECS=[
+  {key:'am1', lbl:"AM 1's Accounts",  col:'michael'},
+  {key:'am2', lbl:"AM 2's Accounts",  col:'dessa'},
+  {key:'am3', lbl:"AM 3's Accounts",  col:'christine'},
+  {key:'am4', lbl:"AM 4's Accounts",  col:'carlos'},
+  {key:'am5', lbl:"AM 5's Accounts",  col:'gilbert'},
+];
+
+const SERVICES=['SEO','Meta Ads','Google Ads','Social Media Management','CRO','Appointment Setter','Outreach'];
+
+/* ── SERVICE CHECKBOX HELPERS ── */
+function toggleSvc(id, svc, checked){
+  const c=clients.find(x=>x.id===id);
+  if(!c) return;
+  let list=c.svc?c.svc.split(',').map(x=>x.trim()).filter(Boolean):[];
+  if(checked){ if(!list.includes(svc)) list.push(svc); }
+  else { list=list.filter(x=>x!==svc); }
+  c.svc=list.join(', ');
+  // update checkbox card style without full re-render
+  const card=document.getElementById('cb_'+id);
+  if(card) card.querySelectorAll('.svc-check').forEach(el=>{
+    const inp=el.querySelector('input');
+    if(inp&&inp.closest('.svc-check')) el.classList.toggle('checked',inp.checked);
+  });
+  save(); regenerate();
+}
+
+function buildSvcCheckboxes(containerId, currentSvc){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const active=(currentSvc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  el.innerHTML=SERVICES.map(sv=>{
+    const on=active.includes(sv);
+    return `<label class="svc-check${on?' checked':''}" onclick="this.classList.toggle('checked',this.querySelector('input').checked)">
+      <input type="checkbox" ${on?'checked':''} value="${sv}">
+      <span>${sv}</span>
+    </label>`;
+  }).join('');
+}
+
+function getCheckedSvcs(containerId){
+  const el=document.getElementById(containerId);
+  if(!el) return '';
+  return Array.from(el.querySelectorAll('input:checked')).map(x=>x.value).join(', ');
+}
+
+/* ── LIVE FX RATE ── */
+async function fetchFX(){
+  const meta=document.getElementById('fxMeta');
+  meta.innerHTML='<span class="fx-loading">Fetching live rate…</span>';
+  try {
+    // frankfurter.app is free, no key needed, CORS-friendly
+    const res=await fetch('https://api.frankfurter.app/latest?from=AUD&to=USD');
+    const data=await res.json();
+    const rate=data.rates.USD;
+    document.getElementById('fxRate').value=rate.toFixed(4);
+    document.getElementById('fxDisp').textContent=rate.toFixed(4);
+    const now=new Date();
+    meta.innerHTML=`✓ Live rate as of ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+    meta.style.color='var(--rz-green)';
+    save(); regenerate();
+  } catch(e){
+    meta.innerHTML='⚠ Could not fetch live rate. Check connection or enter manually.';
+    meta.style.color='var(--warn-text)';
+  }
+}
+function save(){
+  localStorage.setItem('inv_clients', JSON.stringify(clients));
+  localStorage.setItem('inv_cro',     JSON.stringify(cro));
+  localStorage.setItem('inv_ga',      JSON.stringify(ga));
+  localStorage.setItem('inv_nid',     String(nid));
+  localStorage.setItem('inv_settings', JSON.stringify({
+    month: document.getElementById('invMonth')?.value||'',
+    num:   document.getElementById('invNum')?.value||'001',
+    fx:    document.getElementById('fxRate')?.value||'0.65',
+    name:  document.getElementById('invOwnerName')?.value||'',
+    secLabels: SECS.map(s=>s.lbl),
+  }));
+}
+function load(){
+  try {
+    const c=localStorage.getItem('inv_clients'); if(c) clients=JSON.parse(c);
+    const r=localStorage.getItem('inv_cro');     if(r) cro=JSON.parse(r);
+    const g=localStorage.getItem('inv_ga');      if(g) ga=JSON.parse(g);
+    const n=localStorage.getItem('inv_nid');     if(n) nid=+n;
+    const s=localStorage.getItem('inv_settings');
+    if(s){
+      const set=JSON.parse(s);
+      if(set.month) document.getElementById('invMonth').value=set.month;
+      if(set.num)   document.getElementById('invNum').value=set.num;
+      if(set.fx)    document.getElementById('fxRate').value=set.fx;
+      if(set.name)  document.getElementById('invOwnerName').value=set.name;
+      if(set.secLabels) set.secLabels.forEach((lbl,i)=>{ if(SECS[i]) SECS[i].lbl=lbl; });
+    }
+  } catch(e){ console.warn('localStorage load error',e); }
+}
+
+let clients=[], cro=[], ga=[];
+let nid=100, openSec={}, openCard={};
+
+const fmt =(n,d=2)=>'$' +n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtA=(n,d=2)=>'A$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const getTier=m=>TIERS.find(t=>m>=t.min&&m<t.max)||TIERS[0];
+const eff=c=>c.status==='active'?(c.half?c.mrr/2:c.mrr):0;
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function getDate(){const v=document.getElementById('invMonth').value;if(!v){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),1);}const[y,m]=v.split('-');return new Date(+y,+m-1,1);}
+function dlng(d){return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});}
+
+/* ── TABS ── */
+function switchTab(t){
+  ['s','c','x'].forEach(k=>{
+    document.getElementById('tab-'+k).classList.toggle('active',k===t);
+    document.getElementById('panel-'+k).style.display=k===t?'':'none';
+  });
+  if(t==='c')renderClients();
+  if(t==='x')renderSvcs();
+}
+
+/* ── CLIENTS EDITOR ── */
+function renderClients(){
+  let h='';
+  SECS.forEach(sec=>{
+    const sc=clients.filter(c=>c.am===sec.key);
+    const ac=sc.filter(c=>c.status==='active').length;
+    const sk='sec_'+sec.key;
+    const isOpen=openSec[sk]!==false;
+    h+=`<div class="sacc">
+      <div class="sacc-hd" onclick="togSec('${sk}')">
+        <span class="sacc-label">${sec.lbl}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="sacc-meta">${ac} active · ${sc.length} total</span>
+          <span style="color:var(--rz-text-faint);font-size:10px" id="sa_${sk}">${isOpen?'▾':'▸'}</span>
+        </span>
+      </div>
+      <div class="sacc-body" id="sb_${sk}" style="${isOpen?'':'display:none'}">`;
+    sc.forEach(c=>{
+      const b=eff(c);
+      const isOpen2=openCard[c.id]===true;
+      h+=`<div class="cc s-${c.status}" id="cc_${c.id}">
+        <div class="cc-hd" onclick="togCard(${c.id})">
+          <span class="sb sb-${c.status}">${c.status}</span>
+          <span class="cc-name">${esc(c.name)}</span>
+          <span class="cc-mrr">${c.status==='active'?(c.half?'½ ':'')+fmtA(b,0):'—'}</span>
+          <span style="color:var(--rz-text-faint);font-size:11px" id="ca_${c.id}">${isOpen2?'▴':'▾'}</span>
+        </div>
+        <div class="cc-body${isOpen2?' open':''}" id="cb_${c.id}">
+          <div class="fg"><label>Name</label><input type="text" value="${esc(c.name)}" onchange="upC(${c.id},'name',this.value)"></div>
+          <div class="r2">
+            <div class="fg"><label>AM</label><select onchange="upC(${c.id},'am',this.value)">
+              ${SECS.map(s=>`<option value="${s.key}"${c.am===s.key?' selected':''}>${s.lbl.replace(/'s Accounts/,'').replace(/ Accounts/,'')}</option>`).join('')}
+            </select></div>
+            <div class="fg"><label>Status</label><select onchange="upC(${c.id},'status',this.value)">
+              ${['active','paused','churned','upcoming'].map(s=>`<option value="${s}"${c.status===s?' selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}
+            </select></div>
+          </div>
+          <div class="r2">
+            <div class="fg"><label>MRR (AUD)</label><input type="number" value="${c.mrr}" min="0" step="50" onchange="upC(${c.id},'mrr',+this.value)"></div>
+            <div class="fg"><label>Half Month?</label><select onchange="upC(${c.id},'half',this.value==='true')">
+              <option value="false"${!c.half?' selected':''}>No – full</option>
+              <option value="true"${c.half?' selected':''}>Yes – half</option>
+            </select></div>
+          </div>
+          <div class="fg"><label>Services</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:2px">
+              ${SERVICES.map(sv=>{const on=(c.svc||'').split(',').map(x=>x.trim()).includes(sv);return`<label class="svc-check${on?' checked':''}"><input type="checkbox"${on?' checked':''} onchange="toggleSvc(${c.id},'${sv}',this.checked)"><span>${sv}</span></label>`}).join('')}
+            </div>
+          </div>
+          <div class="fg"><label>Note</label><input type="text" value="${esc(c.note)}" onchange="upC(${c.id},'note',this.value)"></div>
+          <div style="display:flex;justify-content:flex-end;margin-top:6px">
+            <button class="btn btn-ds btn-xs" onclick="delC(${c.id})">Delete</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  });
+  document.getElementById('clientSections').innerHTML=h;
+}
+
+function togSec(sk){
+  const b=document.getElementById('sb_'+sk),a=document.getElementById('sa_'+sk);
+  const hidden=b.style.display==='none';
+  b.style.display=hidden?'':'none'; a.textContent=hidden?'▾':'▸'; openSec[sk]=hidden;
+}
+function togCard(id){
+  const b=document.getElementById('cb_'+id),a=document.getElementById('ca_'+id);
+  const o=b.classList.toggle('open'); a.textContent=o?'▴':'▾'; openCard[id]=o;
+}
+function upC(id,f,v){const c=clients.find(x=>x.id===id);if(c){c[f]=v;save();regenerate();renderClients();}}
+function delC(id){if(!confirm('Delete this client?'))return;clients=clients.filter(x=>x.id!==id);save();regenerate();renderClients();}
+
+/* ── CLIENT MODAL ── */
+function openClientModal(id){
+  const c=id?clients.find(x=>x.id===id):null;
+  document.getElementById('mClientTitle').textContent=c?'Edit Client':'Add Client';
+  document.getElementById('mCid').value=id||'';
+  document.getElementById('mCname').value=c?c.name:'';
+  const sel=document.getElementById('mCam');
+  sel.innerHTML=SECS.map(s=>`<option value="${s.key}">${s.lbl.replace(/'s Accounts/,'').replace(/ Accounts/,'')}</option>`).join('');
+  sel.value=c?c.am:'am1';
+  document.getElementById('mCstatus').value=c?c.status:'active';
+  document.getElementById('mCmrr').value=c?c.mrr:0;
+  document.getElementById('mChalf').value=c?String(c.half):'false';
+  buildSvcCheckboxes('mCsvcBoxes', c?c.svc:'');
+  document.getElementById('mCnote').value=c?c.note:'';
+  document.getElementById('mClient').classList.add('open');
+}
+function saveClient(){
+  const id=document.getElementById('mCid').value;
+  const d={
+    name:   document.getElementById('mCname').value.trim(),
+    am:     document.getElementById('mCam').value,
+    status: document.getElementById('mCstatus').value,
+    mrr:    +document.getElementById('mCmrr').value,
+    half:   document.getElementById('mChalf').value==='true',
+    svc:    getCheckedSvcs('mCsvcBoxes'),
+    note:   document.getElementById('mCnote').value.trim(),
+  };
+  if(!d.name){alert('Enter a client name.');return;}
+  if(id){const c=clients.find(x=>x.id===+id);if(c)Object.assign(c,d);}
+  else clients.push({id:nid++,...d});
+  closeM('mClient');save();regenerate();renderClients();
+}
+
+/* ── SERVICE EDITOR ── */
+function renderSvcs(){
+  function row(list,type,c){
+    return `<div class="svc-row">
+      <div class="flex ic gap6" style="margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;flex:1">${esc(c.name)}</span>
+        <span class="green bold" style="font-size:12px">${fmt(c.usd)}</span>
+        ${c.half?'<span class="itag t-half" style="margin-left:0">½</span>':''}
+        ${!c.active?'<span class="itag t-upcome" style="margin-left:0">Upcoming</span>':''}
+      </div>
+      <div class="r3" style="margin-bottom:6px">
+        <div><div class="fl">Active</div>
+          <select onchange="upS('${type}',${c.id},'active',this.value==='true');save();renderSvcs();regenerate()">
+            <option value="true"${c.active?' selected':''}>Yes</option>
+            <option value="false"${!c.active?' selected':''}>No</option>
+          </select></div>
+        <div><div class="fl">USD/mo</div>
+          <input type="number" value="${c.usd}" min="0" step="10" onchange="upS('${type}',${c.id},'usd',+this.value);save();regenerate()"></div>
+        <div><div class="fl">Half?</div>
+          <select onchange="upS('${type}',${c.id},'half',this.value==='true');save();renderSvcs();regenerate()">
+            <option value="false"${!c.half?' selected':''}>Full</option>
+            <option value="true"${c.half?' selected':''}>Half</option>
+          </select></div>
+      </div>
+      <div class="flex gap6">
+        <input type="text" value="${esc(c.name)}" placeholder="Name" style="flex:1" onchange="upS('${type}',${c.id},'name',this.value);save()">
+        <input type="text" value="${esc(c.note)}" placeholder="Note" style="flex:1" onchange="upS('${type}',${c.id},'note',this.value);save()">
+        <button class="btn btn-ds btn-xs" style="padding:6px 8px" onclick="delS('${type}',${c.id})">✕</button>
+      </div>
+    </div>`;
+  }
+  document.getElementById('croList').innerHTML=cro.map(c=>row(cro,'cro',c)).join('');
+  document.getElementById('gaList').innerHTML=ga.map(c=>row(ga,'ga',c)).join('');
+}
+function upS(type,id,f,v){const l=type==='cro'?cro:ga;const c=l.find(x=>x.id===id);if(c)c[f]=v;}
+function delS(type,id){if(!confirm('Remove?'))return;if(type==='cro')cro=cro.filter(x=>x.id!==id);else ga=ga.filter(x=>x.id!==id);save();renderSvcs();regenerate();}
+function openSvcModal(type){
+  document.getElementById('mStype').value=type;document.getElementById('mSid').value='';
+  document.getElementById('mSvcTitle').textContent='Add '+(type==='cro'?'CRO':'Google Ads')+' Client';
+  document.getElementById('mSname').value='';document.getElementById('mSusd').value=type==='cro'?50:100;
+  document.getElementById('mSactive').value='true';document.getElementById('mShalf').value='false';document.getElementById('mSnote').value='';
+  document.getElementById('mSvc').classList.add('open');
+}
+function saveSvc(){
+  const type=document.getElementById('mStype').value;
+  const l=type==='cro'?cro:ga;
+  const name=document.getElementById('mSname').value.trim();
+  if(!name){alert('Enter a name.');return;}
+  l.push({id:nid++,name,usd:+document.getElementById('mSusd').value,active:document.getElementById('mSactive').value==='true',half:document.getElementById('mShalf').value==='true',note:document.getElementById('mSnote').value.trim()});
+  closeM('mSvc');save();renderSvcs();regenerate();
+}
+
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mbg').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
+
+/* ── REGENERATE ── */
+function regenerate(){
+  const fx=parseFloat(document.getElementById('fxRate').value)||0.65;
+  document.getElementById('fxDisp').textContent=fx.toFixed(3);
+  const invDate=getDate();
+  const yr=invDate.getFullYear();
+  const mo=invDate.toLocaleString('en-US',{month:'long'});
+  const num=document.getElementById('invNum').value||'001';
+  const lastDay=new Date(yr,invDate.getMonth()+1,0);
+  const dueDay=new Date(yr,invDate.getMonth()+1,7);
+  document.getElementById('hNum').textContent=num;
+  document.getElementById('hDate').textContent=dlng(lastDay);
+  document.getElementById('hDue').textContent=dlng(dueDay);
+
+  let podMRR=0;
+  clients.forEach(c=>{if(POD.includes(c.am))podMRR+=eff(c);});
+  const podUSD=podMRR*fx, bonus=podUSD*0.03, tier=getTier(podMRR), base=tier.base, amTotal=base+bonus;
+  const ratioOk=base>0?podMRR>=base*25:true, ratio=base>0?(podMRR/base).toFixed(1):'—';
+  let croT=0,gaT=0;
+  cro.forEach(c=>{if(c.active)croT+=c.half?c.usd/2:c.usd;});
+  ga.forEach(c=>{if(c.active)gaT+=c.half?c.usd/2:c.usd;});
+  const grand=amTotal+croT+gaT;
+
+  document.getElementById('cbar').innerHTML=`
+    <div class="cbi"><div class="cbi-l">Pod MRR</div><div class="cbi-v">${fmtA(podMRR,0)}</div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">Pod USD</div><div class="cbi-v">${fmt(podUSD,0)}</div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">Tier</div><div style="margin-top:3px"><span class="tier-b">${tier.label}</span></div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">Base</div><div class="cbi-v">${fmt(base,0)}</div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">Bonus</div><div class="cbi-v">${fmt(bonus)}</div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">25× Check</div><div class="cbi-v${ratioOk?'':' warn'}">${ratio}× ${ratioOk?'✓':'✗ LOW'}</div></div>
+    <div class="cdiv"></div>
+    <div class="cbi"><div class="cbi-l">Grand Total</div><div class="cbi-v">${fmt(grand)}</div></div>`;
+
+  let html='';
+  SECS.forEach(sec=>{
+    const sc=clients.filter(c=>c.am===sec.key);if(!sc.length)return;
+    const isPod=POD.includes(sec.key);
+    const col=sec.col;
+    let sMRR=0;sc.forEach(c=>sMRR+=eff(c));
+    html+=`<div class="inv-sec">
+      <div class="inv-sh sh-${col}">${sec.lbl}${isPod?' <span class="itag t-pod" style="margin-left:6px;vertical-align:middle">Pod</span>':''}</div>
+      <table class="itbl th-${col}"><thead><tr>
+        <th style="width:30%">Client</th><th>Services</th><th style="width:90px">MRR</th><th style="width:110px">Billed (AUD)</th>
+      </tr></thead><tbody>`;
+    sc.forEach(c=>{
+      const b=eff(c);let rc='',tags='';
+      if(c.status==='paused'){rc='rp';tags+=' <span class="itag t-paused">Paused</span>';}
+      else if(c.status==='churned'){rc='rc';tags+=' <span class="itag t-churned">Churned</span>';}
+      else if(c.status==='upcoming'){rc='ru';tags+=' <span class="itag t-upcome">Upcoming</span>';}
+      else if(c.half){rc='rh';tags+=' <span class="itag t-half">½</span>';}
+      html+=`<tr class="${rc}">
+        <td><div class="bold">${esc(c.name)}${tags}</div>${c.note?`<div class="ntxt">${esc(c.note)}</div>`:''}</td>
+        <td><div class="stxt">${esc(c.svc)||'—'}</div></td>
+        <td class="tr">${fmtA(c.mrr,0)}</td>
+        <td class="tr">${b>0?fmtA(b,0):'—'}</td>
+      </tr>`;
+    });
+    html+=`</tbody><tfoot><tr class="rt-${col}"><td colspan="3">Section Total (Active)</td><td class="tr">${fmtA(sMRR,0)}</td></tr></tfoot></table></div>`;
+  });
+
+  // CRO
+  html+=`<div class="inv-sec">
+    <div class="inv-sh sh-service">CRO Management</div>
+    <table class="itbl th-service"><thead><tr><th>Client</th><th>Note</th><th style="width:130px">Amount (USD)</th></tr></thead><tbody>`;
+  cro.forEach(c=>{
+    const amt=c.active?(c.half?c.usd/2:c.usd):0;
+    let rc='',tags='';
+    if(!c.active){rc='ru';tags+=' <span class="itag t-upcome">Upcoming</span>';}
+    else if(c.half){rc='rh';tags+=' <span class="itag t-half">½</span>';}
+    html+=`<tr class="${rc}"><td><strong>${esc(c.name)}</strong>${tags}</td><td class="stxt">${esc(c.note)||''}</td><td class="tr">${amt>0?fmt(amt):'—'}</td></tr>`;
+  });
+  html+=`</tbody><tfoot><tr class="rt-service"><td colspan="2">CRO Total</td><td class="tr">${fmt(croT)}</td></tr></tfoot></table></div>`;
+
+  // GA
+  html+=`<div class="inv-sec">
+    <div class="inv-sh sh-service">Google Ads Management</div>
+    <table class="itbl th-service"><thead><tr><th>Client</th><th>Note</th><th style="width:130px">Amount (USD)</th></tr></thead><tbody>`;
+  ga.forEach(c=>{
+    const amt=c.active?(c.half?c.usd/2:c.usd):0;
+    let rc='',tags='';
+    if(!c.active){rc='ru';tags+=' <span class="itag t-upcome">Upcoming</span>';}
+    else if(c.half){rc='rh';tags+=' <span class="itag t-half">½</span>';}
+    html+=`<tr class="${rc}"><td><strong>${esc(c.name)}</strong>${tags}</td><td class="stxt">${esc(c.note)||''}</td><td class="tr">${amt>0?fmt(amt):'—'}</td></tr>`;
+  });
+  html+=`</tbody><tfoot><tr class="rt-service"><td colspan="2">Google Ads Total</td><td class="tr">${fmt(gaT)}</td></tr></tfoot></table></div>`;
+
+  document.getElementById('invBody').innerHTML=html;
+
+  const rows=[
+    {type:'s',lbl:'Account Management'},
+    {lbl:'Pod Revenue (AUD)',val:fmtA(podMRR)},
+    {lbl:'Pod Revenue (USD)',val:fmt(podUSD)},
+    {lbl:`Performance Bonus (3% × ${fmt(podUSD)})`,val:fmt(bonus)},
+    {lbl:`Base Salary — ${tier.label}`,val:fmt(base)},
+    {lbl:'AM Compensation Total',val:fmt(amTotal),bold:true},
+    {type:'s',lbl:'Additional Services'},
+    {lbl:'CRO Total (USD)',val:fmt(croT)},
+    {lbl:'Google Ads Total (USD)',val:fmt(gaT)},
+    {type:'g',lbl:`Grand Total Payable — ${mo} ${yr}`,val:fmt(grand)},
+  ];
+  let sh='';
+  rows.forEach(r=>{
+    if(r.type==='s')sh+=`<tr class="ss"><td colspan="2">${r.lbl}</td></tr>`;
+    else if(r.type==='g')sh+=`<tr class="sg"><td>${r.lbl}</td><td>${r.val}</td></tr>`;
+    else sh+=`<tr class="${r.bold?'sb2':''}"><td style="color:#555">${r.lbl}</td><td>${r.val}</td></tr>`;
+  });
+  document.getElementById('sumTable').innerHTML=sh;
+}
+
+/* ── SECTION LABEL RENDERER ── */
+function renderSecLabels(){
+  const el=document.getElementById('secLabelFields');
+  if(!el) return;
+  el.innerHTML=SECS.map((sec,i)=>`
+    <div class="fg" style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--${['pm','pd','pc','pk','pg'][i]}-hdr)"></span>
+        AM ${i+1} Label
+      </label>
+      <input type="text" id="secLabel_${i}" value="${esc(sec.lbl)}" placeholder="e.g. Michael's Accounts">
+    </div>`).join('');
+  // re-wire listeners after render
+  SECS.forEach((sec,i)=>{
+    const el=document.getElementById('secLabel_'+i);
+    if(!el) return;
+    el.oninput=()=>{ SECS[i].lbl=el.value||`AM ${i+1}'s Accounts`; save(); renderClients(); regenerate(); };
+  });
+}
+
+/* ── CLEAR ALL DATA ── */
+function clearAllData(){
+  if(!confirm('This will erase ALL saved clients, services, and settings from your browser. Are you sure?')) return;
+  localStorage.clear();
+  clients=[]; cro=[]; ga=[]; nid=100;
+  document.getElementById('invOwnerName').value='';
+  document.getElementById('hOwnerName').textContent='Your Name';
+  SECS.forEach((s,i)=>{ s.lbl=`AM ${i+1}'s Accounts`; });
+  renderSecLabels(); save(); renderClients(); renderSvcs(); regenerate();
+  alert('All data cleared.');
+}
+
+window.onload=()=>{
+  // Set default month before load so load() can override it
+  const n=new Date();
+  document.getElementById('invMonth').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+
+  load(); // restore from localStorage
+
+  // Sync invoice header name after load
+  const savedName=document.getElementById('invOwnerName').value;
+  document.getElementById('hOwnerName').textContent=savedName||'Your Name';
+
+  // Auto-save + regenerate on any settings change
+  document.getElementById('invMonth').addEventListener('change',()=>{save();regenerate();});
+  document.getElementById('fxRate').addEventListener('input',()=>{save();regenerate();});
+  document.getElementById('invNum').addEventListener('input',()=>{
+    document.getElementById('hNum').textContent=document.getElementById('invNum').value;
+    save();
+  });
+  document.getElementById('invOwnerName').addEventListener('input',()=>{
+    document.getElementById('hOwnerName').textContent=document.getElementById('invOwnerName').value||'Your Name';
+    save();
+  });
+
+  renderSecLabels();
+  regenerate();
+  // Auto-fetch live FX on load
+  fetchFX();
+};
+</script>
+</body>
+</html>
