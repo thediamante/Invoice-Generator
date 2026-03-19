@@ -205,8 +205,14 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 .modal h3 { font-size:13px; font-weight:700; color:var(--rz-green); margin-bottom:14px; text-transform:uppercase; letter-spacing:.08em; }
 .modal-act { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 
-/* service row */
-.svc-row { background:var(--rz-card); border:1px solid var(--rz-border); border-radius:4px; padding:8px 10px; margin-bottom:6px; }
+/* service checkboxes */
+.svc-check { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:4px; border:1px solid var(--rz-border); background:var(--rz-black); cursor:pointer; transition:border-color .15s,background .15s; user-select:none; }
+.svc-check:hover { border-color:var(--rz-border-green); background:var(--rz-green-faint); }
+.svc-check.checked { border-color:var(--rz-green); background:var(--rz-green-faint); }
+.svc-check input[type=checkbox] { width:13px; height:13px; accent-color:var(--rz-green); cursor:pointer; flex-shrink:0; }
+.svc-check span { font-size:11px; color:var(--rz-text-muted); }
+.svc-check.checked span { color:var(--rz-green); font-weight:600; }
+.fx-loading { color:var(--rz-text-faint); font-style:italic; }
 
 /* utils */
 .mt8 { margin-top:8px; }
@@ -254,11 +260,18 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
       <div class="fg"><label>Invoice Month</label><input type="month" id="invMonth"></div>
       <div class="r2">
         <div class="fg"><label>Invoice #</label><input type="text" id="invNum" value="001"></div>
-        <div class="fg"><label>FX Rate AUD→USD</label><input type="number" id="fxRate" value="0.65" step="0.001" min="0.4" max="1"></div>
+        <div class="fg">
+          <label>FX Rate AUD→USD</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="number" id="fxRate" value="0.65" step="0.0001" min="0.4" max="1" style="flex:1">
+            <button class="btn btn-ol btn-xs" onclick="fetchFX()" title="Fetch live rate" style="padding:7px 9px;white-space:nowrap">⟳ Live</button>
+          </div>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--rz-text-faint);margin-top:-6px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--rz-text-faint);margin-top:-6px;margin-bottom:4px">
         1 AUD = <span id="fxDisp" class="green bold">0.650</span> USD &nbsp;·&nbsp; Bonus: <span class="green bold">3%</span>
       </div>
+      <div id="fxMeta" style="font-size:10px;color:var(--rz-text-faint);margin-bottom:14px"></div>
       <div class="div"></div>
       <div style="font-size:10px;font-weight:700;color:var(--rz-text-faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Section Labels</div>
       <div style="font-size:11px;color:var(--rz-text-faint);margin-bottom:8px">Rename each AM section (saved locally)</div>
@@ -368,7 +381,10 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
         <select id="mChalf"><option value="false">No – full</option><option value="true">Yes – half</option></select>
       </div>
     </div>
-    <div class="fg"><label>Services</label><input type="text" id="mCsvc" placeholder="SEO, Google Ads, SMM…"></div>
+    <div class="fg"><label>Services</label>
+      <div id="mCsvcBoxes" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:2px"></div>
+      <input type="hidden" id="mCsvc">
+    </div>
     <div class="fg"><label>Note</label><input type="text" id="mCnote" placeholder="e.g. Starts Jan 15"></div>
     <div class="modal-act">
       <button class="btn btn-gh" onclick="closeM('mClient')">Cancel</button>
@@ -419,7 +435,64 @@ const SECS=[
   {key:'am5', lbl:"AM 5's Accounts",  col:'gilbert'},
 ];
 
-/* ── localStorage helpers ── */
+const SERVICES=['SEO','Meta Ads','Google Ads','Social Media Management','CRO','Appointment Setter','Outreach'];
+
+/* ── SERVICE CHECKBOX HELPERS ── */
+function toggleSvc(id, svc, checked){
+  const c=clients.find(x=>x.id===id);
+  if(!c) return;
+  let list=c.svc?c.svc.split(',').map(x=>x.trim()).filter(Boolean):[];
+  if(checked){ if(!list.includes(svc)) list.push(svc); }
+  else { list=list.filter(x=>x!==svc); }
+  c.svc=list.join(', ');
+  // update checkbox card style without full re-render
+  const card=document.getElementById('cb_'+id);
+  if(card) card.querySelectorAll('.svc-check').forEach(el=>{
+    const inp=el.querySelector('input');
+    if(inp&&inp.closest('.svc-check')) el.classList.toggle('checked',inp.checked);
+  });
+  save(); regenerate();
+}
+
+function buildSvcCheckboxes(containerId, currentSvc){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const active=(currentSvc||'').split(',').map(x=>x.trim()).filter(Boolean);
+  el.innerHTML=SERVICES.map(sv=>{
+    const on=active.includes(sv);
+    return `<label class="svc-check${on?' checked':''}" onclick="this.classList.toggle('checked',this.querySelector('input').checked)">
+      <input type="checkbox" ${on?'checked':''} value="${sv}">
+      <span>${sv}</span>
+    </label>`;
+  }).join('');
+}
+
+function getCheckedSvcs(containerId){
+  const el=document.getElementById(containerId);
+  if(!el) return '';
+  return Array.from(el.querySelectorAll('input:checked')).map(x=>x.value).join(', ');
+}
+
+/* ── LIVE FX RATE ── */
+async function fetchFX(){
+  const meta=document.getElementById('fxMeta');
+  meta.innerHTML='<span class="fx-loading">Fetching live rate…</span>';
+  try {
+    // frankfurter.app is free, no key needed, CORS-friendly
+    const res=await fetch('https://api.frankfurter.app/latest?from=AUD&to=USD');
+    const data=await res.json();
+    const rate=data.rates.USD;
+    document.getElementById('fxRate').value=rate.toFixed(4);
+    document.getElementById('fxDisp').textContent=rate.toFixed(4);
+    const now=new Date();
+    meta.innerHTML=`✓ Live rate as of ${now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+    meta.style.color='var(--rz-green)';
+    save(); regenerate();
+  } catch(e){
+    meta.innerHTML='⚠ Could not fetch live rate. Check connection or enter manually.';
+    meta.style.color='var(--warn-text)';
+  }
+}
 function save(){
   localStorage.setItem('inv_clients', JSON.stringify(clients));
   localStorage.setItem('inv_cro',     JSON.stringify(cro));
@@ -503,7 +576,7 @@ function renderClients(){
           <div class="fg"><label>Name</label><input type="text" value="${esc(c.name)}" onchange="upC(${c.id},'name',this.value)"></div>
           <div class="r2">
             <div class="fg"><label>AM</label><select onchange="upC(${c.id},'am',this.value)">
-              ${['michael','dessa','christine','carlos','gilbert'].map(a=>`<option value="${a}"${c.am===a?' selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}
+              ${SECS.map(s=>`<option value="${s.key}"${c.am===s.key?' selected':''}>${s.lbl.replace(/'s Accounts/,'').replace(/ Accounts/,'')}</option>`).join('')}
             </select></div>
             <div class="fg"><label>Status</label><select onchange="upC(${c.id},'status',this.value)">
               ${['active','paused','churned','upcoming'].map(s=>`<option value="${s}"${c.status===s?' selected':''}>${s[0].toUpperCase()+s.slice(1)}</option>`).join('')}
@@ -516,7 +589,11 @@ function renderClients(){
               <option value="true"${c.half?' selected':''}>Yes – half</option>
             </select></div>
           </div>
-          <div class="fg"><label>Services</label><input type="text" value="${esc(c.svc)}" onchange="upC(${c.id},'svc',this.value)"></div>
+          <div class="fg"><label>Services</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:2px">
+              ${SERVICES.map(sv=>{const on=(c.svc||'').split(',').map(x=>x.trim()).includes(sv);return`<label class="svc-check${on?' checked':''}"><input type="checkbox"${on?' checked':''} onchange="toggleSvc(${c.id},'${sv}',this.checked)"><span>${sv}</span></label>`}).join('')}
+            </div>
+          </div>
           <div class="fg"><label>Note</label><input type="text" value="${esc(c.note)}" onchange="upC(${c.id},'note',this.value)"></div>
           <div style="display:flex;justify-content:flex-end;margin-top:6px">
             <button class="btn btn-ds btn-xs" onclick="delC(${c.id})">Delete</button>
@@ -547,20 +624,27 @@ function openClientModal(id){
   document.getElementById('mClientTitle').textContent=c?'Edit Client':'Add Client';
   document.getElementById('mCid').value=id||'';
   document.getElementById('mCname').value=c?c.name:'';
-  // update AM dropdown labels dynamically
   const sel=document.getElementById('mCam');
   sel.innerHTML=SECS.map(s=>`<option value="${s.key}">${s.lbl.replace(/'s Accounts/,'').replace(/ Accounts/,'')}</option>`).join('');
   sel.value=c?c.am:'am1';
   document.getElementById('mCstatus').value=c?c.status:'active';
   document.getElementById('mCmrr').value=c?c.mrr:0;
   document.getElementById('mChalf').value=c?String(c.half):'false';
-  document.getElementById('mCsvc').value=c?c.svc:'';
+  buildSvcCheckboxes('mCsvcBoxes', c?c.svc:'');
   document.getElementById('mCnote').value=c?c.note:'';
   document.getElementById('mClient').classList.add('open');
 }
 function saveClient(){
   const id=document.getElementById('mCid').value;
-  const d={name:document.getElementById('mCname').value.trim(),am:document.getElementById('mCam').value,status:document.getElementById('mCstatus').value,mrr:+document.getElementById('mCmrr').value,half:document.getElementById('mChalf').value==='true',svc:document.getElementById('mCsvc').value.trim(),note:document.getElementById('mCnote').value.trim()};
+  const d={
+    name:   document.getElementById('mCname').value.trim(),
+    am:     document.getElementById('mCam').value,
+    status: document.getElementById('mCstatus').value,
+    mrr:    +document.getElementById('mCmrr').value,
+    half:   document.getElementById('mChalf').value==='true',
+    svc:    getCheckedSvcs('mCsvcBoxes'),
+    note:   document.getElementById('mCnote').value.trim(),
+  };
   if(!d.name){alert('Enter a client name.');return;}
   if(id){const c=clients.find(x=>x.id===+id);if(c)Object.assign(c,d);}
   else clients.push({id:nid++,...d});
@@ -793,6 +877,8 @@ window.onload=()=>{
 
   renderSecLabels();
   regenerate();
+  // Auto-fetch live FX on load
+  fetchFX();
 };
 </script>
 </body>
