@@ -252,11 +252,11 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
   .app { display: block; }
   .main { overflow: visible; display: block; }
   .inv-wrap {
-    padding: 18mm 16mm;
+    padding: 10mm 10mm;
     max-width: 100%;
   }
 
-  /* Invoice card — no shadow, full width */
+  /* Invoice card — no shadow, no border, full width */
   .inv-page {
     box-shadow: none !important;
     border: none !important;
@@ -264,6 +264,21 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
     padding: 0 !important;
     font-size: 11px;
   }
+
+  /* White out all table borders */
+  table.itbl,
+  table.itbl th,
+  table.itbl td,
+  .inv-sum,
+  .inv-sum td,
+  .inv-sum table {
+    border-color: #fff !important;
+  }
+
+  /* Thinner row dividers — barely visible white lines */
+  table.itbl td { border-bottom: 0.5px solid #efefef !important; }
+  table.itbl th { border-bottom: 0.5px solid #efefef !important; }
+  .inv-sum td   { border-bottom: 0.5px solid #efefef !important; }
 
   /* Force all background colors to print */
   .inv-sh,
