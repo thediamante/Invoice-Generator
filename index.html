@@ -230,11 +230,54 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 .div { border:none; border-top:1px solid var(--rz-border); margin:10px 0; }
 
 @media print {
-  body { background:#fff; }
-  .sidebar,.cbar,.print-hide { display:none !important; }
-  .main { overflow:visible; }
-  .inv-wrap { padding:0; max-width:100%; }
-  .inv-page { box-shadow:none; padding:16px; }
+  /* ── Remove browser-injected header/footer (title, URL, timestamp) ── */
+  @page {
+    margin: 0;
+    size: A4;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide UI chrome */
+  .sidebar, .cbar, .print-hide { display: none !important; }
+
+  /* Main area fills page */
+  .app { display: block; }
+  .main { overflow: visible; display: block; }
+  .inv-wrap {
+    padding: 18mm 16mm;
+    max-width: 100%;
+  }
+
+  /* Invoice card — no shadow, full width */
+  .inv-page {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    font-size: 11px;
+  }
+
+  /* Force all background colors to print */
+  .inv-sh,
+  .inv-sum-h,
+  .inv-sum .sg td,
+  .inv-sum .ss td,
+  table.itbl th,
+  .rt-michael td, .rt-dessa td, .rt-christine td,
+  .rt-carlos td, .rt-gilbert td, .rt-service td,
+  .rp td, .rc td, .rh td, .ru td,
+  .inv-sum .sb2 td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 </style>
 </head>
