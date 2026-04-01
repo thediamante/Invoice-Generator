@@ -232,7 +232,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 @media print {
   /* ── Remove browser-injected header/footer (title, URL, timestamp) ── */
   @page {
-    margin: 0;
+    margin: 12mm 14mm;
     size: A4;
   }
 
@@ -249,11 +249,12 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
   .sidebar, .cbar, .print-hide { display: none !important; }
 
   /* Main area fills page */
-  .app { display: block; }
-  .main { overflow: visible; display: block; }
+  .app { display: block; background: #fff !important; }
+  .main { overflow: visible; display: block; background: #fff !important; }
   .inv-wrap {
-    padding: 10mm 10mm;
+    padding: 0;
     max-width: 100%;
+    background: #fff !important;
   }
 
   /* Invoice card — no shadow, no border, full width */
@@ -263,6 +264,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
     border-radius: 0 !important;
     padding: 0 !important;
     font-size: 11px;
+    background: #fff !important;
   }
 
   /* White out all table borders */
@@ -275,7 +277,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
     border-color: #fff !important;
   }
 
-  /* Thinner row dividers — barely visible white lines */
+  /* Thinner row dividers */
   table.itbl td { border-bottom: 0.5px solid #efefef !important; }
   table.itbl th { border-bottom: 0.5px solid #efefef !important; }
   .inv-sum td   { border-bottom: 0.5px solid #efefef !important; }
