@@ -126,8 +126,9 @@ select { cursor:pointer; }
    michael  → pastel green   #b7e8b0 / text #2d6a27
    dessa    → pastel pink    #f7c5d8 / text #8b2252
    christine→ pastel lavender#d4c5f7 / text #4a2d8b
-   carlos   → pastel sky     #b8dcf7 / text #1a4f7a
-   gilbert  → pastel peach   #fcd9b0 / text #7a3e10
+   gilbert  → pastel peach   #fcd9b0 / text #7a3e10  (AM4)
+   carlos   → pastel sky     #b8dcf7 / text #1a4f7a  (AM5 - Gelo)
+   newam    → pastel yellow  #fef9a0 / text #5a4a00  (AM6 - Princess)
    cro/ga   → pastel gold    #f7e6b0 / text #6b4e00
 */
 :root {
@@ -136,6 +137,7 @@ select { cursor:pointer; }
   --pc-hdr:#d4c5f7; --pc-txt:#4a2d8b; --pc-th:#ede7ff; --pc-tb:#4a2d8b; --pc-tot:#ddd0fb; --pc-bdr:#b8a8f0;
   --pk-hdr:#b8dcf7; --pk-txt:#1a4f7a; --pk-th:#dceeff; --pk-tb:#1a4f7a; --pk-tot:#c8e6fb; --pk-bdr:#8cc8f0;
   --pg-hdr:#fcd9b0; --pg-txt:#7a3e10; --pg-th:#fef0d8; --pg-tb:#7a3e10; --pg-tot:#fce4c0; --pg-bdr:#f5c080;
+  --py-hdr:#fef9a0; --py-txt:#5a4a00; --py-th:#fffde0; --py-tb:#5a4a00; --py-tot:#fef3b0; --py-bdr:#e8d040;
   --px-hdr:#f7e6b0; --px-txt:#6b4e00; --px-th:#fef6d8; --px-tb:#6b4e00; --px-tot:#faedc0; --px-bdr:#f0d478;
 }
 
@@ -145,6 +147,7 @@ select { cursor:pointer; }
 .sh-christine { background:var(--pc-hdr); color:var(--pc-txt); }
 .sh-carlos    { background:var(--pk-hdr); color:var(--pk-txt); }
 .sh-gilbert   { background:var(--pg-hdr); color:var(--pg-txt); }
+.sh-newam     { background:var(--py-hdr); color:var(--py-txt); }
 .sh-service   { background:var(--px-hdr); color:var(--px-txt); }
 
 table.itbl { width:100%; border-collapse:collapse; border:1px solid #ddd; border-top:none; }
@@ -160,6 +163,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 .th-christine th{ background:var(--pc-th); color:var(--pc-tb); border-bottom:1px solid var(--pc-bdr); }
 .th-carlos  th { background:var(--pk-th); color:var(--pk-tb); border-bottom:1px solid var(--pk-bdr); }
 .th-gilbert th { background:var(--pg-th); color:var(--pg-tb); border-bottom:1px solid var(--pg-bdr); }
+.th-newam   th { background:var(--py-th); color:var(--py-tb); border-bottom:1px solid var(--py-bdr); }
 .th-service th { background:var(--px-th); color:var(--px-tb); border-bottom:1px solid var(--px-bdr); }
 
 /* per-AM section total row */
@@ -168,6 +172,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 .rt-christine td{ font-weight:700; background:var(--pc-tot) !important; color:var(--pc-txt); font-size:12px; }
 .rt-carlos  td { font-weight:700; background:var(--pk-tot) !important; color:var(--pk-txt); font-size:12px; }
 .rt-gilbert td { font-weight:700; background:var(--pg-tot) !important; color:var(--pg-txt); font-size:12px; }
+.rt-newam   td { font-weight:700; background:var(--py-tot) !important; color:var(--py-txt); font-size:12px; }
 .rt-service td { font-weight:700; background:var(--px-tot) !important; color:var(--px-txt); font-size:12px; }
 
 /* status rows (shared across all sections) */
@@ -291,7 +296,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
   .inv-sum .ss td,
   table.itbl th,
   .rt-michael td, .rt-dessa td, .rt-christine td,
-  .rt-carlos td, .rt-gilbert td, .rt-service td,
+  .rt-carlos td, .rt-gilbert td, .rt-newam td, .rt-service td,
   .rp td, .rc td, .rh td, .ru td,
   .inv-sum .sb2 td,
   .inv-sum .sga td {
@@ -368,7 +373,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
     <!-- CLIENTS -->
     <div id="panel-c" style="display:none">
       <div class="flex ic jb mt8" style="margin-bottom:10px">
-        <span style="font-size:11px;color:var(--rz-text-faint)">Click a client to expand & edit</span>
+        <span style="font-size:11px;color:var(--rz-text-faint)">Click a client to expand &amp; edit</span>
         <button class="btn btn-g btn-sm" onclick="openClientModal()">+ Add</button>
       </div>
       <div id="clientSections"></div>
@@ -441,7 +446,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
         <select id="mCam">
           <option value="am1">AM 1</option><option value="am2">AM 2</option>
           <option value="am3">AM 3</option><option value="am4">AM 4</option>
-          <option value="am5">AM 5</option>
+          <option value="am5">AM 5</option><option value="am6">AM 6</option>
         </select>
       </div>
       <div class="fg"><label>Status</label>
@@ -502,13 +507,14 @@ const TIERS=[
   {min:50000, max:70000,    base:1800, label:'Tier 3 – Senior AM'},
   {min:70000, max:Infinity, base:2400, label:'Tier 4 – Division Lead'},
 ];
-const POD=['am1','am2','am3','am4','am5'];
+const POD=['am1','am2','am3','am4','am5','am6'];
 const SECS=[
   {key:'am1', lbl:"AM 1's Accounts",  col:'michael'},
   {key:'am2', lbl:"AM 2's Accounts",  col:'dessa'},
   {key:'am3', lbl:"AM 3's Accounts",  col:'christine'},
-  {key:'am4', lbl:"AM 4's Accounts",  col:'carlos'},
-  {key:'am5', lbl:"AM 5's Accounts",  col:'gilbert'},
+  {key:'am4', lbl:"AM 4's Accounts",  col:'gilbert'},
+  {key:'am5', lbl:"AM 5's Accounts",  col:'carlos'},
+  {key:'am6', lbl:"AM 6's Accounts",  col:'newam'},
 ];
 
 const SERVICES=['SEO','Meta Ads','Google Ads','Social Media Management','CRO','Appointment Setter','Outreach'];
@@ -581,12 +587,18 @@ function save(){
     name:  document.getElementById('invOwnerName')?.value||'',
     bankName: document.getElementById('settBankName')?.value||'',
     bankAcct: document.getElementById('settBankAcct')?.value||'',
-    secLabels: SECS.map(s=>s.lbl),
+    secLabels: Object.fromEntries(SECS.map(s=>[s.key, s.lbl])),
   }));
 }
 function load(){
   try {
     const c=localStorage.getItem('inv_clients'); if(c) clients=JSON.parse(c);
+    // one-time migration: Gilbert moved from am5 → am4 (Carlos removed)
+    if (!localStorage.getItem('mig_gilbert_am4')) {
+      clients.forEach(cl=>{ if(cl.am==='am5') cl.am='am4'; });
+      localStorage.setItem('inv_clients', JSON.stringify(clients));
+      localStorage.setItem('mig_gilbert_am4','1');
+    }
     const r=localStorage.getItem('inv_cro');     if(r) cro=JSON.parse(r);
     const g=localStorage.getItem('inv_ga');      if(g) ga=JSON.parse(g);
     const n=localStorage.getItem('inv_nid');     if(n) nid=+n;
@@ -599,7 +611,14 @@ function load(){
       if(set.name)  document.getElementById('invOwnerName').value=set.name;
       if(set.bankName){ document.getElementById('settBankName').value=set.bankName; document.getElementById('invBankName').textContent=set.bankName; }
       if(set.bankAcct){ document.getElementById('settBankAcct').value=set.bankAcct; document.getElementById('invBankAcct').textContent=set.bankAcct; }
-      if(set.secLabels) set.secLabels.forEach((lbl,i)=>{ if(SECS[i]) SECS[i].lbl=lbl; });
+      if(set.secLabels){
+        if(Array.isArray(set.secLabels)){
+          // legacy positional format — migrate
+          set.secLabels.forEach((lbl,i)=>{ if(SECS[i]) SECS[i].lbl=lbl; });
+        } else {
+          SECS.forEach(s=>{ if(set.secLabels[s.key]) s.lbl=set.secLabels[s.key]; });
+        }
+      }
     }
   } catch(e){ console.warn('localStorage load error',e); }
 }
@@ -910,7 +929,7 @@ function renderSecLabels(){
   el.innerHTML=SECS.map((sec,i)=>`
     <div class="fg" style="margin-bottom:8px">
       <label style="display:flex;align-items:center;gap:6px">
-        <span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--${['pm','pd','pc','pk','pg'][i]}-hdr)"></span>
+        <span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:var(--${['pm','pd','pc','pg','pk','py'][i]}-hdr)"></span>
         AM ${i+1} Label
       </label>
       <input type="text" id="secLabel_${i}" value="${esc(sec.lbl)}" placeholder="e.g. Michael's Accounts">
