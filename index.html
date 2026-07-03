@@ -200,8 +200,6 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
 .ss td  { background:#dff5db !important; font-weight:700; font-size:10px; color:#2d6a27; text-transform:uppercase; letter-spacing:.06em; }
 .sg td  { background:#b7e8b0 !important; color:#1a3d16 !important; font-size:14px; font-weight:800; }
 .sg td:last-child { font-size:16px; }
-.sga td  { background:#dff5db !important; color:#2d6a27 !important; font-size:12px; font-weight:700; }
-.sga td:last-child { font-size:14px; }
 .sb2 td { font-weight:700; background:#f0fced !important; }
 .inv-div { border:none; border-top:1px solid #eee; margin:16px 0; }
 
@@ -298,8 +296,7 @@ table.itbl tr:nth-child(even) td { background:#fafafa; }
   .rt-michael td, .rt-dessa td, .rt-christine td,
   .rt-carlos td, .rt-gilbert td, .rt-newam td, .rt-service td,
   .rp td, .rc td, .rh td, .ru td,
-  .inv-sum .sb2 td,
-  .inv-sum .sga td {
+  .inv-sum .sb2 td {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -826,8 +823,8 @@ function regenerate(){
   let croT=0,gaT=0;
   cro.forEach(c=>{if(c.active)croT+=c.half?c.usd/2:c.usd;});
   ga.forEach(c=>{if(c.active)gaT+=c.half?c.usd/2:c.usd;});
-  const grand=amTotal+croT+gaT;
-  const grandAUD=grand/fx;
+  const headAM=350;
+  const grand=amTotal+croT+gaT+headAM;
 
   document.getElementById('cbar').innerHTML=`
     <div class="cbi"><div class="cbi-l">Pod MRR</div><div class="cbi-v">${fmtA(podMRR,0)}</div></div>
@@ -906,17 +903,16 @@ function regenerate(){
     {lbl:`Performance Bonus (3% × ${fmt(podUSD)})`,val:fmt(bonus)},
     {lbl:`Base Salary — ${tier.label}`,val:fmt(base)},
     {lbl:'AM Compensation Total',val:fmt(amTotal),bold:true},
+    {lbl:'Head of Account Managers',val:fmt(headAM)},
     {type:'s',lbl:'Additional Services'},
     {lbl:'CRO Total (USD)',val:fmt(croT)},
     {lbl:'Google Ads Total (USD)',val:fmt(gaT)},
     {type:'g',lbl:'Grand Total Payable (USD) — '+mo+' '+yr,val:fmt(grand)},
-    {type:'ga',lbl:'≈ AUD Equivalent — 1 USD = '+(1/fx).toFixed(4)+' AUD',val:fmtA(grandAUD)},
   ];
   let sh='';
   rows.forEach(r=>{
     if(r.type==='s')sh+=`<tr class="ss"><td colspan="2">${r.lbl}</td></tr>`;
     else if(r.type==='g')sh+=`<tr class="sg"><td>${r.lbl}</td><td>${r.val}</td></tr>`;
-    else if(r.type==='ga')sh+=`<tr class="sga"><td>${r.lbl}</td><td>${r.val}</td></tr>`;
     else sh+=`<tr class="${r.bold?'sb2':''}"><td style="color:#555">${r.lbl}</td><td>${r.val}</td></tr>`;
   });
   document.getElementById('sumTable').innerHTML=sh;
